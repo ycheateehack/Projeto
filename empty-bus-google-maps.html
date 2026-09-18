@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Empty-Bus — Mapa com sua localização</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #eef1f6;
+    --border: #d9dfe8;
+    --text: #131a24;
+    --text-dim: #5c6a7d;
+    --accent: #2f6fed;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.08);
+
+    --eb-bg: #4b2fce;
+    --eb-card: #5b3fd6;
+    --eb-input-bg: #f4f3f8;
+    --eb-input-text: #23233a;
+    --eb-input-placeholder: #8b8b9c;
+    --eb-accent: #2f6fed;
+    --eb-accent-2: #9fc2ff;
+    --eb-header-bg: #050505;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --surface: #151b23;
+      --surface-2: #1c232d;
+      --border: #2b3441;
+      --text: #e7edf5;
+      --text-dim: #93a1b4;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: inherit; }
+
+  /* ==================== TELA DE LOGIN / CADASTRO ==================== */
+  #authScreen { min-height: 100vh; background: var(--eb-bg); display: flex; flex-direction: column; }
+  .eb-header { background: var(--eb-header-bg); color: #fff; text-align: center; padding: 16px 12px; font-size: 22px; font-weight: 800; }
+  .eb-header span { color: var(--eb-bg); }
+  .auth-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 36px 16px; }
+  .auth-card { width: 100%; max-width: 360px; background: var(--eb-card); border-radius: 16px; padding: 26px 28px 24px; box-shadow: 0 18px 45px rgba(0,0,0,.35); }
+  .auth-card h2 { color: #fff; text-align: center; font-size: 20px; letter-spacing: .5px; margin: 0 0 20px; }
+  .auth-field { margin-bottom: 14px; }
+  .auth-field label { display: block; color: #fff; font-size: 12.5px; margin-bottom: 5px; }
+  .auth-field input { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 6px; border: none; background: var(--eb-input-bg); color: var(--eb-input-text); font-size: 13.5px; }
+  .auth-field input::placeholder { color: var(--eb-input-placeholder); }
+  .auth-field input:focus { outline: 2px solid var(--eb-accent-2); outline-offset: 1px; }
+  .auth-btn { width: 100%; background: var(--eb-accent); color: #fff; border: none; border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 700; margin-top: 6px; cursor: pointer; }
+  .auth-btn:hover { filter: brightness(1.08); }
+  .auth-switch { text-align: center; color: #fff; font-size: 12.5px; margin: 14px 0 0; }
+  .auth-switch a { color: var(--eb-accent-2); cursor: pointer; text-decoration: none; }
+  .auth-switch a:hover { text-decoration: underline; }
+  .auth-error { background: rgba(255,255,255,.12); border: 1px solid rgba(255,120,120,.6); color: #ffd7d7; font-size: 12.5px; border-radius: 7px; padding: 8px 10px; margin-bottom: 12px; display: none; }
+  .auth-error.show { display: block; }
+  .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 2px; color: rgba(255,255,255,.65); font-size: 12px; }
+  .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,.25); }
+  .social-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid transparent; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .social-btn.google { background: #fff; color: #1c1c28; border-color: #dcdce3; }
+  .social-btn.google:hover { background: #f5f5f8; }
+  .social-btn.apple { background: #000; color: #fff; }
+  .social-btn.apple:hover { filter: brightness(1.2); }
+
+  /* ==================== APP ==================== */
+  #appScreen { display: none; }
+  header.top { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; position: sticky; top: 0; z-index: 20; }
+  .brand-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .logo { width: 32px; height: 32px; border-radius: 9px; background: var(--eb-bg); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 15px; flex: none; }
+  .brand h1 { font-size: 17px; margin: 0; letter-spacing: -.2px; }
+  .brand p { margin: 0; font-size: 12px; color: var(--text-dim); }
+  .spacer { flex: 1 1 auto; }
+  .ghost-btn { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font-size: 13px; }
+  .ghost-btn:hover { border-color: var(--eb-accent); }
+  .ghost-btn.on { border-color: var(--eb-accent); color: var(--eb-accent); }
+  .ghost-btn.simulate { border-color: #b45309; color: #b45309; }
+
+  main { padding: 18px 20px 40px; max-width: 1300px; margin: 0 auto; }
+  .map-layout { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .map-layout { grid-template-columns: minmax(0,1fr); } }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+  .card-head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .card-head h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: .6px; color: var(--text-dim); }
+  .card-body { padding: 14px; }
+
+  .map-wrap { position: relative; background: var(--surface-2); min-height: 460px; }
+  .map-wrap iframe { display: block; width: 100%; height: 520px; border: 0; }
+  .skeleton { position: absolute; inset: 0; background: var(--surface-2); display: grid; place-items: center; gap: 10px; z-index: 5; }
+  .skeleton.hidden { display: none; }
+  .spinner { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--eb-accent); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .skeleton p { color: var(--text-dim); font-size: 13px; margin: 0; text-align: center; padding: 0 20px; }
+
+  .detail-empty { color: var(--text-dim); font-size: 13px; }
+  .status-box { font-size: 13px; margin: 0 0 10px; }
+  .coord-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .coord-cell { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .coord-cell .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-dim); }
+  .coord-cell .val { font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+  .manual-row { display: flex; gap: 8px; margin-top: 10px; }
+  .manual-row input {
+    flex: 1; min-width: 0; padding: 8px 9px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 12.5px;
+  }
+  .link-btn { display: inline-block; margin-top: 10px; font-size: 12.5px; color: var(--eb-accent); text-decoration: none; font-weight: 600; }
+  .link-btn:hover { text-decoration: underline; }
+  .note { font-size: 11.5px; color: var(--text-dim); margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- ============ TELA DE LOGIN / CADASTRO ============ -->
+<div id="authScreen">
+  <div class="eb-header">Empty-<span>Bus</span></div>
+  <div class="auth-wrap">
+
+    <div class="auth-card" id="loginCard">
+      <h2>LOGIN</h2>
+      <div class="auth-error" id="loginError"></div>
+      <form id="loginForm" novalidate>
+        <div class="auth-field">
+          <label for="loginEmail">E-mail</label>
+          <input type="email" id="loginEmail" placeholder="Digite seu e-mail" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginSenha">Senha</label>
+          <input type="password" id="loginSenha" placeholder="Digite sua senha" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="auth-btn">Entrar</button>
+        <div class="auth-divider">ou continue com</div>
+        <button type="button" class="social-btn google" id="googleLoginBtn">
+          <svg width="17" height="17" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.581C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
+          </svg>
+          Entrar com Google
+        </button>
+        <button type="button" class="social-btn apple" id="appleLoginBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+            <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.02.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.39 0-2.36-1.25-3.36-2.59-1.517-2.05-2.702-5.13-2.702-8.04 0-4.61 3.02-7.06 5.998-7.06 1.497 0 2.747.99 3.685.99.93 0 2.302-1.05 4.007-1.05.65 0 2.98.06 4.512 2.27-.117.08-2.694 1.58-2.694 4.75 0 3.75 3.32 5.07 3.47 5.13z"/>
+          </svg>
+          Entrar com Apple
+        </button>
+        <p class="auth-switch">Não tem uma conta? <a id="toCadastro">Cadastre-se</a></p>
+      </form>
+    </div>
+
+    <div class="auth-card" id="cadastroCard" style="display:none">
+      <h2>CADASTRO</h2>
+      <div class="auth-error" id="cadastroError"></div>
+      <form id="cadastroForm" novalidate>
+        <div class="auth-field">
+          <label for="cadNome">Nome Completo</label>
+          <input type="text" id="cadNome" placeholder="Digite seu nome" required>
+        </div>
+        <div class="auth-field">
+          <label for="cadEmail">E-mail</label>
+          <input type="email" id="cadEmail" placeholder="Digite seu e-mail" required>
+        </div>
+        <div class="auth-field">
+          <label for="cadSenha">Senha</label>
+          <input type="password" id="cadSenha" placeholder="Digite sua senha" required>
+        </div>
+        <div class="auth-field">
+          <label for="cadSenha2">Confirme sua Senha</label>
+          <input type="password" id="cadSenha2" placeholder="Digite sua senha" required>
+        </div>
+        <div class="auth-field">
+          <label for="cadNasc">Data de nascimento</label>
+          <input type="date" id="cadNasc" required>
+        </div>
+        <button type="submit" class="auth-btn">Cadastrar</button>
+        <p class="auth-switch">Já tem uma conta? <a id="toLogin">Entrar</a></p>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="appScreen">
+  <header class="top">
+    <div class="brand-row">
+      <div class="logo">E</div>
+      <div class="brand">
+        <h1>Empty-Bus</h1>
+        <p>Mapa real do Google com a sua localização</p>
+      </div>
+      <div class="spacer"></div>
+      <button class="ghost-btn" id="logoutBtn">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="map-layout">
+      <div class="card map-wrap">
+        <div class="skeleton" id="skeleton">
+          <div class="spinner"></div>
+          <p id="skeletonMsg">Carregando o Google Maps…</p>
+        </div>
+        <iframe id="gmap" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      </div>
+
+      <aside style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <div class="card-head"><h2>Minha localização</h2></div>
+          <div class="card-body">
+            <p class="status-box detail-empty" id="locStatus">Compartilhe sua localização para centralizar o mapa em você.</p>
+            <button class="ghost-btn" id="locBtn" style="width:100%">Compartilhar minha localização</button>
+
+            <div class="coord-grid" id="coordGrid" style="display:none">
+              <div class="coord-cell"><div class="lbl">Latitude</div><div class="val" id="latVal">—</div></div>
+              <div class="coord-cell"><div class="lbl">Longitude</div><div class="val" id="lngVal">—</div></div>
+            </div>
+
+            <a class="link-btn" id="openGmapLink" href="#" target="_blank" rel="noopener" style="display:none">Abrir esta localização no Google Maps ↗</a>
+
+            <div id="manualBox" style="display:none">
+              <p class="note" style="margin-top:14px">Não deu pra obter automaticamente. Informe manualmente:</p>
+              <div class="manual-row">
+                <input type="text" id="manualLat" placeholder="Latitude (ex: -8.0578)">
+                <input type="text" id="manualLng" placeholder="Longitude (ex: -34.8829)">
+              </div>
+              <button class="ghost-btn" id="manualBtn" style="width:100%;margin-top:8px">Usar estas coordenadas</button>
+            </div>
+
+            <p class="note">O navegador só compartilha a localização se você permitir. Se o site for aberto direto de um arquivo (sem servidor), alguns navegadores podem bloquear o pedido — nesse caso, use as coordenadas manuais.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ================= autenticação (demo/MVP, sem backend) ================= */
+  var USERS_KEY = "emptybus-gmap-users";
+  var SESSION_KEY = "emptybus-gmap-session";
+  function loadUsers() { try { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); } catch (e) { return []; } }
+  function saveUsers(l) { try { localStorage.setItem(USERS_KEY, JSON.stringify(l)); } catch (e) {} }
+  function setSession(email) { try { localStorage.setItem(SESSION_KEY, email); } catch (e) {} }
+  function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} }
+  function getSession() { try { return localStorage.getItem(SESSION_KEY); } catch (e) { return null; } }
+
+  function showError(el, msg) { el.textContent = msg; el.classList.add("show"); }
+  function hideError(el) { el.classList.remove("show"); el.textContent = ""; }
+
+  function showApp() {
+    $("authScreen").style.display = "none";
+    $("appScreen").style.display = "block";
+    initMap();
+  }
+  function showAuth() {
+    $("appScreen").style.display = "none";
+    $("authScreen").style.display = "flex";
+  }
+  function showCard(which) {
+    $("loginCard").style.display = which === "login" ? "block" : "none";
+    $("cadastroCard").style.display = which === "cadastro" ? "block" : "none";
+    hideError($("loginError"));
+    hideError($("cadastroError"));
+  }
+  $("toCadastro").addEventListener("click", function () { showCard("cadastro"); });
+  $("toLogin").addEventListener("click", function () { showCard("login"); });
+
+  function socialLoginPlaceholder(provider) {
+    var errEl = $("loginError");
+    showError(errEl, "Login com " + provider + " ainda não está disponível nesta versão de demonstração.");
+  }
+  $("googleLoginBtn").addEventListener("click", function () { socialLoginPlaceholder("Google"); });
+  $("appleLoginBtn").addEventListener("click", function () { socialLoginPlaceholder("Apple"); });
+
+  $("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var errEl = $("loginError"); hideError(errEl);
+    var email = $("loginEmail").value.trim().toLowerCase();
+    var senha = $("loginSenha").value;
+    if (!email || !senha) { showError(errEl, "Preencha e-mail e senha."); return; }
+    var user = loadUsers().filter(function (u) { return u.email === email; })[0];
+    if (!user || user.senha !== senha) { showError(errEl, "E-mail ou senha incorretos."); return; }
+    setSession(email);
+    showApp();
+  });
+
+  $("cadastroForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var errEl = $("cadastroError"); hideError(errEl);
+    var nome = $("cadNome").value.trim();
+    var email = $("cadEmail").value.trim().toLowerCase();
+    var senha = $("cadSenha").value;
+    var senha2 = $("cadSenha2").value;
+    var nasc = $("cadNasc").value;
+    if (!nome || !email || !senha || !senha2 || !nasc) { showError(errEl, "Preencha todos os campos."); return; }
+    if (senha !== senha2) { showError(errEl, "As senhas não coincidem."); return; }
+    if (senha.length < 4) { showError(errEl, "A senha deve ter pelo menos 4 caracteres."); return; }
+    var users = loadUsers();
+    if (users.some(function (u) { return u.email === email; })) { showError(errEl, "Já existe uma conta com esse e-mail."); return; }
+    users.push({ nome: nome, email: email, senha: senha, nasc: nasc });
+    saveUsers(users);
+    setSession(email);
+    showApp();
+  });
+
+  $("logoutBtn").addEventListener("click", function () {
+    clearSession();
+    $("loginForm").reset();
+    $("cadastroForm").reset();
+    showCard("login");
+    showAuth();
+  });
+
+  var session = getSession();
+  if (session && loadUsers().some(function (u) { return u.email === session; })) {
+    showApp();
+  }
+
+  /* ================= mapa real do Google + localização ================= */
+  var DEFAULT_COORDS = { lat: -8.0578, lng: -34.8829 }; // Recife, PE
+  var mapInitialized = false;
+  var mapSkeletonTimer = null;
+
+  function embedUrl(lat, lng, zoom) {
+    return "https://maps.google.com/maps?q=" + lat + "," + lng + "&z=" + (zoom || 16) + "&output=embed";
+  }
+
+  function setMap(lat, lng, zoom) {
+    var frame = $("gmap");
+    var sk = $("skeleton");
+    clearTimeout(mapSkeletonTimer);
+    sk.classList.remove("hidden");
+    $("skeletonMsg").textContent = "Carregando o Google Maps…";
+    frame.onload = function () {
+      sk.classList.add("hidden");
+      clearTimeout(mapSkeletonTimer);
+    };
+    // se o Google Maps demorar demais (ou o evento onload não disparar,
+    // o que pode acontecer com alguns bloqueadores), destrava a tela mesmo assim
+    mapSkeletonTimer = setTimeout(function () { sk.classList.add("hidden"); }, 6000);
+    frame.src = embedUrl(lat, lng, zoom);
+  }
+
+  function initMap() {
+    if (mapInitialized) return;
+    mapInitialized = true;
+    setMap(DEFAULT_COORDS.lat, DEFAULT_COORDS.lng, 12);
+  }
+
+  function fmtCoord(v) { return v.toFixed(5); }
+
+  function applyLocation(lat, lng, accuracy, simulated) {
+    setMap(lat, lng, 16);
+    $("coordGrid").style.display = "grid";
+    $("latVal").textContent = fmtCoord(lat);
+    $("lngVal").textContent = fmtCoord(lng);
+    var link = $("openGmapLink");
+    link.href = "https://www.google.com/maps?q=" + lat + "," + lng;
+    link.style.display = "inline-block";
+    var statusEl = $("locStatus");
+    statusEl.textContent = simulated
+      ? "Localização informada manualmente."
+      : "Localização ativa" + (accuracy ? " (precisão ~" + Math.round(accuracy) + " m)" : "") + ".";
+    var btn = $("locBtn");
+    btn.textContent = "Atualizar localização";
+    btn.className = "ghost-btn on";
+    $("manualBox").style.display = "none";
+  }
+
+  function requestLocation() {
+    var statusEl = $("locStatus"), btn = $("locBtn");
+    if (!navigator.geolocation) {
+      statusEl.textContent = "Este navegador não suporta geolocalização.";
+      $("manualBox").style.display = "block";
+      return;
+    }
+    statusEl.textContent = "Obtendo sua localização…";
+    btn.disabled = true;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      btn.disabled = false;
+      applyLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, false);
+    }, function () {
+      btn.disabled = false;
+      statusEl.textContent = "Não foi possível obter sua localização (permissão negada ou indisponível).";
+      btn.textContent = "Tentar novamente";
+      btn.className = "ghost-btn simulate";
+      $("manualBox").style.display = "block";
+    }, { enableHighAccuracy: true, timeout: 8000 });
+  }
+
+  $("locBtn").addEventListener("click", requestLocation);
+
+  $("manualBtn").addEventListener("click", function () {
+    var lat = parseFloat($("manualLat").value.replace(",", "."));
+    var lng = parseFloat($("manualLng").value.replace(",", "."));
+    if (isNaN(lat) || isNaN(lng)) {
+      alert("Informe latitude e longitude válidas.");
+      return;
+    }
+    applyLocation(lat, lng, null, true);
+  });
+})();
+</script>
+</body>
+</html>
