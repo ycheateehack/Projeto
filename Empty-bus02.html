@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#9333ea">
+<title>Empty-Bus</title>
+<style>
+  :root {
+    --eb-bg: #4b2fce;
+    --eb-card: #5b3fd6;
+    --eb-input-bg: #f4f3f8;
+    --eb-input-text: #23233a;
+    --eb-input-placeholder: #8b8b9c;
+    --eb-accent: #2f6fed;
+    --eb-accent-2: #9fc2ff;
+    --eb-header-bg: #050505;
+  }
+  button { font: inherit; cursor: pointer; }
+
+  #authScreen { min-height: 100vh; height: 100vh; height: 100dvh; overflow-y: auto; background: var(--eb-bg); display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .eb-header { background: var(--eb-header-bg); color: #fff; text-align: center; padding: calc(16px + env(safe-area-inset-top, 0px)) 12px 16px; font-size: 22px; font-weight: 800; }
+  .eb-header span { color: var(--eb-bg); }
+  .auth-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 36px 16px; }
+  .auth-card { width: 100%; max-width: 360px; background: var(--eb-card); border-radius: 16px; padding: 26px 28px 24px; box-shadow: 0 18px 45px rgba(0,0,0,.35); }
+  .auth-card h2 { color: #fff; text-align: center; font-size: 20px; letter-spacing: .5px; margin: 0 0 20px; }
+  .auth-field { margin-bottom: 14px; }
+  .auth-field label { display: block; color: #fff; font-size: 12.5px; margin-bottom: 5px; }
+  .auth-field input { width: 100%; padding: 10px 12px; border-radius: 6px; border: none; background: var(--eb-input-bg); color: var(--eb-input-text); font-size: 13.5px; }
+  .auth-field input::placeholder { color: var(--eb-input-placeholder); }
+  .auth-field input:focus { outline: 2px solid var(--eb-accent-2); outline-offset: 1px; }
+  .auth-btn { width: 100%; background: var(--eb-accent); color: #fff; border: none; border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 700; margin-top: 6px; }
+  .auth-btn:hover { filter: brightness(1.08); }
+  .auth-switch { text-align: center; color: #fff; font-size: 12.5px; margin: 14px 0 0; }
+  .auth-switch a { color: var(--eb-accent-2); cursor: pointer; text-decoration: none; }
+  .auth-switch a:hover { text-decoration: underline; }
+  .auth-error { background: rgba(255,255,255,.12); border: 1px solid rgba(255,120,120,.6); color: #ffd7d7; font-size: 12.5px; border-radius: 7px; padding: 8px 10px; margin-bottom: 12px; display: none; }
+  .auth-error.show { display: block; }
+  .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 2px; color: rgba(255,255,255,.65); font-size: 12px; }
+  .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,.25); }
+  .social-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid transparent; font-size: 13.5px; font-weight: 600; }
+  .social-btn.google { background: #fff; color: #1c1c28; border-color: #dcdce3; }
+  .social-btn.google:hover { background: #f5f5f8; }
+  .social-btn.apple { background: #000; color: #fff; }
+  .social-btn.apple:hover { filter: brightness(1.2); }
+
+/* ===== App de ônibus ===== */
+:root {
+  --roxo: #9333ea;
+  --roxo-escuro: #6d28d9;
+  --branco: #fff;
+  --cinza: #6b7280;
+  --azul: #1d4ed8;
+  --verde: #4f9a52;
+  --fundo: #140d0d;
+  --painel-h: calc(104px + env(safe-area-inset-bottom, 0px));
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body { background: var(--fundo); font-family: "Inter", "Segoe UI", system-ui, sans-serif; }
+.celular { display: none; position: relative; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; }
+.celular.ativa { display: block; }
+.celular.home { background: var(--roxo); color: #fff; padding: calc(22px + env(safe-area-inset-top, 0px)) 18px 18px; overflow-x: hidden; overflow-y: auto; }
+.celular.home.ativa { display: flex; flex-direction: column; }
+.topo { display: flex; justify-content: space-between; align-items: flex-start; }
+.topo h1 { font-size: 22px; font-weight: 700; }
+.topo p { font-size: 13px; margin-top: 3px; }
+.avatar { width: 42px; height: 42px; border-radius: 50%; border: 0; background: #fff; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
+.busca-wrap { position: relative; margin-top: 18px; }
+.busca { width: 100%; padding: 13px 14px; border: 0; border-radius: 8px; background: #c9c1d6; color: #333; font: inherit; font-size: 16px; text-align: center; }
+.busca::placeholder { color: #555; }
+.atalhos { display: flex; gap: 10px; margin-top: 12px; }
+.atalho { flex: 1; background: #fff; color: #111; text-decoration: none; border-radius: 8px; padding: 12px 10px 14px; display: flex; flex-direction: column; gap: 2px; min-height: 128px; cursor: pointer; }
+.atalho strong { font-size: 16px; margin-top: auto; }
+.atalho small { font-size: 12px; color: #555; }
+.icone { width: 44px; height: 44px; border-radius: 50%; background: #f1eefb; display: grid; place-items: center; font-size: 20px; }
+.icone.redondo { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.15); flex-shrink: 0; }
+.icone.mini { width: 28px; height: 28px; font-size: 14px; flex: none; }
+.titulo-secao { display: flex; justify-content: space-between; align-items: center; margin: 24px 0 8px; }
+.titulo-secao h2 { font-size: 17px; }
+.titulo-secao a { font-size: 13px; color: #cfe0ff; text-decoration: none; padding: 6px 0; }
+.lista { list-style: none; margin-bottom: 18px; }
+.lista li { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.22); cursor: pointer; }
+.lista li:last-child { border-bottom: 0; }
+.lista li:hover { background: rgba(255,255,255,.08); }
+.linha { width: 58px; height: 40px; border-radius: 6px; display: grid; place-items: center; font-weight: 600; font-size: 17px; flex: none; }
+.linha.azul { background: var(--azul); }
+.linha.verde { background: var(--verde); }
+.linha.roxa { background: #4c1d95; }
+.linha.laranja { background: #c2410c; }
+.info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.info strong { font-size: 14px; }
+.info small { font-size: 12px; opacity: .85; }
+.tempo { font-size: 16px; font-weight: 600; white-space: nowrap; }
+.planeje { position: sticky; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); margin-top: auto; background: #f5f5f5; color: #111; text-decoration: none; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.28); cursor: pointer; }
+.planeje:hover { background: #fff; }
+.planeje strong { display: block; font-size: 14px; margin-bottom: 3px; }
+.planeje small { display: block; font-size: 12px; line-height: 1.3; }
+.resultados { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 10; background: #fff; color: #111; border-radius: 8px; overflow: auto; max-height: 260px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.resultados[hidden] { display: none; }
+.res { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: 0; border-bottom: 1px solid #eee; background: none; text-align: left; font: inherit; font-size: 14px; color: #111; cursor: pointer; }
+.res:hover, .res:focus-visible { background: #f4efff; }
+.res .linha { width: 44px; height: 28px; font-size: 13px; color: #fff; }
+.mapa-tela { background: var(--roxo); }
+.mapa { position: absolute; inset: 0 0 var(--painel-h) 0; background: #ece9e4; overflow: hidden; }
+#google-map { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; z-index: 1; }
+.barra-busca { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); left: 14px; right: 14px; height: 46px; background: var(--roxo); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; padding: 0 6px; z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.barra-busca button { background: none; border: 0; color: #fff; font-size: 18px; cursor: pointer; width: 38px; height: 38px; flex: none; }
+.barra-busca input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: #fff; font: inherit; font-size: 16px; padding: 0 6px; }
+.barra-busca input::placeholder { color: #e4d4ff; }
+.barra-busca:focus-within { box-shadow: 0 0 0 2px #fff; }
+.ferramentas { position: absolute; right: 14px; top: calc(74px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 12px; z-index: 5; }
+.ferramentas button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,.3); font-size: 18px; cursor: pointer; }
+.ferramentas button.ativo { background: #ddd6f3; }
+.painel { position: absolute; left: 0; right: 0; bottom: 0; height: var(--painel-h); background: var(--roxo); border-radius: 24px 24px 0 0; padding-top: 10px; z-index: 6; }
+.alca { display: block; width: 48px; height: 4px; background: #d8c6f5; border-radius: 2px; margin: 0 auto; }
+.botoes { display: flex; gap: 14px; padding: 0 16px; margin-top: 22px; }
+.botoes button { flex: 1; height: 46px; border: 0; border-radius: 8px; background: #ddd6f3; color: #5b4bb5; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.botoes button:hover { background: #ece8fa; }
+.botoes button.ativo { background: var(--roxo-escuro); color: #fff; box-shadow: inset 0 0 0 1px #d8c6f5; }
+.folha { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; }
+.folha[hidden] { display: none; }
+.folha .fundo { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+.folha .caixa { position: relative; width: 100%; max-height: 85%; display: flex; flex-direction: column; background: #fff; color: #111; border-radius: 20px 20px 0 0; padding: 10px 18px calc(20px + env(safe-area-inset-bottom, 0px)); animation: sobe .22s ease-out; }
+.folha .alca { background: #cfc5e6; }
+@keyframes sobe { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.folha-topo { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px; }
+.folha-topo h3 { font-size: 17px; }
+.fechar { border: 0; background: #f1eefb; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; }
+.folha-corpo { overflow: auto; }
+.folha :focus-visible { outline-color: var(--roxo); }
+.item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid #eee; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+button.item:hover { background: #faf7ff; }
+.item.fixo { cursor: default; }
+.item .linha { width: 50px; height: 34px; font-size: 15px; color: #fff; }
+.item .info { gap: 3px; }
+.item .info strong { font-size: 14px; }
+.item .info small { font-size: 12px; color: #666; opacity: 1; }
+.fav { display: flex; align-items: center; }
+.fav .item { flex: 1; }
+.remover { border: 0; background: none; font-size: 15px; cursor: pointer; padding: 10px; color: #666; }
+.campo { display: block; margin: 14px 0 5px; font-size: 13px; color: #555; }
+.entrada { width: 100%; padding: 12px; border: 1px solid #d6cfe6; border-radius: 8px; font: inherit; font-size: 16px; color: #111; background: #fff; }
+.botao-primario, .botao-sec { width: 100%; margin-top: 16px; padding: 13px; border: 0; border-radius: 8px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.botao-primario { background: var(--roxo); color: #fff; }
+.botao-primario:hover { background: var(--roxo-escuro); }
+.botao-sec { background: #f1eefb; color: var(--roxo-escuro); }
+.erro { color: #b91c1c; font-size: 12px; min-height: 16px; margin-top: 6px; }
+.paradas-lista { list-style: none; margin: 8px 0 4px 5px; padding-left: 16px; border-left: 2px solid var(--roxo); }
+.paradas-lista li { position: relative; padding: 7px 0; font-size: 14px; }
+.paradas-lista li::before { content: ""; position: absolute; left: -22px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: #fff; border: 2px solid var(--roxo); }
+.vazio { color: #666; font-size: 14px; padding: 14px 0; }
+.toast { position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); z-index: 30; background: #140d0d; color: #fff; font-size: 13px; padding: 9px 16px; border-radius: 18px; max-width: 90%; text-align: center; }
+.mapa-tela .toast { bottom: calc(var(--painel-h) + 14px); }
+.toast[hidden] { display: none; }
+:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.celular.destaque { animation: destaque .9s ease-out; }
+@keyframes destaque { from { box-shadow: inset 0 0 0 4px #c4a1ff; } to { box-shadow: inset 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .celular.destaque, .folha .caixa { animation: none; } }
+@media (min-width: 900px) {
+  body { overflow: hidden; }
+  .telas { display: grid; grid-template-columns: clamp(420px, 30vw, 520px) 1fr; height: 100vh; }
+  .celular { display: block; height: 100vh; }
+  .celular.home, .celular.home.ativa { display: flex; flex-direction: column; padding: 36px 32px 28px; border-right: 1px solid var(--roxo-escuro); }
+  .topo h1 { font-size: 28px; }
+  .topo p { font-size: 15px; margin-top: 4px; }
+  .avatar { width: 46px; height: 46px; }
+  .busca-wrap { margin-top: 24px; }
+  .busca { padding: 14px 16px; font-size: 15px; }
+  .atalhos { gap: 14px; margin-top: 16px; }
+  .atalho { min-height: 148px; padding: 16px 14px 18px; transition: background .15s; }
+  .atalho:hover { background: #f7f3ff; }
+  .atalho strong { font-size: 17px; }
+  .atalho small { font-size: 13px; }
+  .icone { width: 48px; height: 48px; font-size: 22px; }
+  .titulo-secao { margin: 32px 0 10px; }
+  .titulo-secao h2 { font-size: 19px; }
+  .titulo-secao a { font-size: 14px; }
+  .lista li { padding: 15px 10px; margin: 0 -10px; border-radius: 6px; }
+  .linha { width: 62px; height: 44px; font-size: 18px; }
+  .info strong { font-size: 15px; }
+  .info small { font-size: 13px; }
+  .tempo { font-size: 17px; }
+  .planeje { padding: 16px 18px; }
+  .planeje strong { font-size: 15px; }
+  .planeje small { font-size: 13px; }
+  .mapa { inset: 0; }
+  .barra-busca { top: 20px; left: 20px; right: auto; width: min(440px, calc(100% - 100px)); height: 48px; }
+  #mapa-voltar { display: none; }
+  .barra-busca input { padding-left: 12px; font-size: 15px; }
+  .ferramentas { top: 20px; right: 20px; }
+  .ferramentas button:hover { background: #f1eefb; }
+  .painel { left: 20px; right: auto; bottom: 28px; height: auto; background: none; border-radius: 0; padding: 0; }
+  .painel .alca { display: none; }
+  .botoes { margin: 0; padding: 0; gap: 10px; }
+  .botoes button { flex: none; height: 44px; padding: 0 20px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  .folha { align-items: center; justify-content: center; }
+  .folha .caixa { width: min(500px, 92vw); max-height: 80vh; border-radius: 16px; padding: 18px 24px 24px; }
+  .folha > .caixa > .alca { display: none; }
+  .folha-topo { margin-top: 0; }
+  .folha-topo h3 { font-size: 19px; }
+  .toast, .mapa-tela .toast { bottom: 32px; }
+}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="eb-header">Empty-<span>Bus</span></div>
+  <div class="auth-wrap">
+
+    <div class="auth-card" id="loginCard">
+      <h2>LOGIN</h2>
+      <div class="auth-error" id="loginError"></div>
+      <form id="loginForm" novalidate>
+        <div class="auth-field">
+          <label for="loginEmail">E-mail</label>
+          <input type="email" id="loginEmail" placeholder="Digite seu e-mail" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginSenha">Senha</label>
+          <input type="password" id="loginSenha" placeholder="Digite sua senha" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="auth-btn">Entrar</button>
+        <div class="auth-divider">ou continue com</div>
+        <button type="button" class="social-btn google" id="googleLoginBtn">
+          <svg width="17" height="17" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.581C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
+          </svg>
+          Entrar com Google
+        </button>
+        <button type="button" class="social-btn apple" id="appleLoginBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+            <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.02.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.39 0-2.36-1.25-3.36-2.59-1.517-2.05-2.702-5.13-2.702-8.04 0-4.61 3.02-7.06 5.998-7.06 1.497 0 2.747.99 3.685.99.93 0 2.302-1.05 4.007-1.05.65 0 2.98.06 4.512 2.27-.117.08-2.694 1.58-2.694 4.75 0 3.75 3.32 5.07 3.47 5.13z"/>
+          </svg>
+          Entrar com Apple
+        </button>
+        <p class="auth-switch">Não tem uma conta? <a id="toCadastro">Cadastre-se</a></p>
+      </form>
+    </div>
+
+    <div class="auth-card" id="cadastroCard" style="display:none">
+      <h2>CADASTRO</h2>
+      <div class="auth-error" id="cadastroError"></div>
+      <form id="cadastroForm" novalidate>
+        <div class="auth-field">
+          <label for="cadNome">Nome Completo</label>
+          <input type="text" id="cadNome" placeholder="Digite seu nome" required>
+        </div>
+        <div class="auth-field">
+          <label for="cadEmail">E-mail</label>
+          <input type="email" id="cadEmail" placeholder="Digite seu e-mail" required>
+        </div>
+        <div class="auth-field">
+          <label for="cadSenha">Senha</label>
+          <input type="password" id="cadSenha" placeholder="Digite sua senha" required>
+        </div>
+        <div class="auth-field">
+          <label for="cadSenha2">Confirme sua Senha</label>
+          <input type="password" id="cadSenha2" placeholder="Digite sua senha" required>
+        </div>
+        <div class="auth-field">
+          <label for="cadNasc">Data de nascimento</label>
+          <input type="date" id="cadNasc" required>
+        </div>
+        <button type="submit" class="auth-btn">Cadastrar</button>
+        <p class="auth-switch">Já tem uma conta? <a id="toLogin">Entrar</a></p>
+      </form>
+    </div>
+
+
+  </div>
+</div>
+
+<div id="appScreen" style="display:none">
+  <main class="telas">
+    <section class="celular home ativa" id="tela-home" aria-label="Tela inicial">
+      <header class="topo">
+        <div>
+          <h1 id="saudacao">Olá, usuário!</h1>
+          <p>Para onde você quer ir hoje ?</p>
+        </div>
+        <button class="avatar" id="btn-perfil" type="button" aria-label="Perfil">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="#111"><circle cx="12" cy="8" r="4.5"/><path d="M3.5 21c0-4.6 3.8-7.5 8.5-7.5s8.5 2.9 8.5 7.5z"/></svg>
+        </button>
+      </header>
+      <div class="busca-wrap">
+        <input class="busca" id="busca" type="search" autocomplete="off" aria-label="Buscar endereço ou linha de ônibus" placeholder="Buscar endereço, linha de ônibus...">
+        <div class="resultados" id="resultados" hidden></div>
+      </div>
+      <div class="atalhos">
+        <a href="#" class="atalho" id="atalho-mapa"><span class="icone">📍</span><strong>Buscar no mapa</strong><small>Encontre pontos próximos</small></a>
+        <a href="#" class="atalho" id="atalho-linhas"><span class="icone">🚌</span><strong>Linhas de ônibus</strong><small>Veja horários e itinerários</small></a>
+      </div>
+      <div class="titulo-secao"><h2>Próximos ônibus</h2><a href="#" id="ver-todos">Ver todos</a></div>
+      <ul class="lista" id="lista-proximos"></ul>
+      <a href="#" class="planeje" id="btn-planejar">
+        <span class="icone redondo">🚌</span>
+        <div><strong>Planeje sua viagem</strong><small>Veja rotas, horários e quanto tempo vai levar</small></div>
+      </a>
+      <div class="folha" hidden>
+        <div class="fundo"></div>
+        <div class="caixa" role="dialog" aria-modal="true">
+          <i class="alca"></i>
+          <div class="folha-topo"><h3></h3><button class="fechar" type="button" aria-label="Fechar">✕</button></div>
+          <div class="folha-corpo"></div>
+        </div>
+      </div>
+      <div class="toast" role="status" hidden></div>
+    </section>
+    <section class="celular mapa-tela" id="tela-mapa" aria-label="Tela do mapa">
+      <div class="mapa">
+        <iframe id="google-map" title="Mapa Google" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+        <div class="barra-busca">
+          <button id="mapa-voltar" type="button" aria-label="Voltar">←</button>
+          <input id="mapa-busca" type="text" enterkeyhint="search" autocomplete="off" aria-label="Buscar no mapa" placeholder="Buscar endereço ou lugar">
+          <button id="mapa-limpar" type="button" aria-label="Limpar busca">✕</button>
+        </div>
+        <div class="ferramentas">
+          <button id="btn-localizar" type="button" aria-label="Minha localização" title="Minha localização">◎</button>
+          <button id="btn-camadas" type="button" aria-label="Alternar satélite" aria-pressed="false" title="Satélite">◈</button>
+        </div>
+      </div>
+      <div class="painel">
+        <i class="alca"></i>
+        <div class="botoes">
+          <button id="btn-favoritos" type="button">☆ favoritos</button>
+          <button id="btn-paradas" type="button" aria-pressed="false">🚌 Paradas</button>
+        </div>
+      </div>
+      <div class="folha" hidden>
+        <div class="fundo"></div>
+        <div class="caixa" role="dialog" aria-modal="true">
+          <i class="alca"></i>
+          <div class="folha-topo"><h3></h3><button class="fechar" type="button" aria-label="Fechar">✕</button></div>
+          <div class="folha-corpo"></div>
+        </div>
+      </div>
+      <div class="toast" role="status" hidden></div>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const el = (tag, attrs = {}, ...kids) => {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'text') e.textContent = v; else e.setAttribute(k, v);
+    }
+    kids.flat().forEach(c => e.append(c));
+    return e;
+  };
+  const on = (n, fn) => n.addEventListener('click', e => { e.preventDefault(); fn(e); });
+  const store = {
+    get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+
+  const linhas = [
+    { num: '201', cor: 'azul',    nome: 'Terminal Central',  dir: 'Centro', min: 3,  freq: 15, paradas: ['Terminal Central', 'Av. Brasil', 'Praça da Liberdade', 'Hospital Municipal', 'Centro'] },
+    { num: '307', cor: 'verde',   nome: 'Jardim das Flores', dir: 'Centro', min: 7,  freq: 20, paradas: ['Jardim das Flores', 'Rua das Acácias', 'Escola Estadual', 'Mercado Público', 'Centro'] },
+    { num: '412', cor: 'roxa',    nome: 'Vila Nova',         dir: 'Centro', min: 12, freq: 25, paradas: ['Vila Nova', 'Posto de Saúde', 'Av. Principal', 'Parque Municipal', 'Centro'] },
+    { num: '118', cor: 'laranja', nome: 'Shopping',          dir: 'Centro', min: 18, freq: 30, paradas: ['Shopping', 'Av. Norte', 'Rodoviária', 'Centro'] },
+    { num: '520', cor: 'azul',    nome: 'Parque Municipal',  dir: 'Terminal Central', min: 24, freq: 30, paradas: ['Parque Municipal', 'Praça da Liberdade', 'Av. Brasil', 'Terminal Central'] }
+  ];
+  let nome = store.get('nome', 'usuário');
+  let favoritos = store.get('favoritos', []);
+
+  const telaHome = $('#tela-home'), telaMapa = $('#tela-mapa');
+  const tempo = m => (m <= 0 ? 'Agora' : m + ' min');
+
+  function ir(tela) {
+    document.querySelectorAll('.celular').forEach(c => c.classList.toggle('ativa', c.id === 'tela-' + tela));
+    const t = $('#tela-' + tela);
+    t.classList.remove('destaque'); void t.offsetWidth; t.classList.add('destaque');
+  }
+
+  function toast(tela, msg) {
+    const t = $('.toast', tela);
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 2800);
+  }
+  let opener = null;
+  function abrirFolha(tela, titulo, corpo) {
+    const f = $('.folha', tela);
+    if (f.hidden) opener = document.activeElement;
+    $('h3', f).textContent = titulo;
+    $('.caixa', f).setAttribute('aria-label', titulo);
+    $('.folha-corpo', f).replaceChildren(corpo);
+    f.hidden = false;
+    ($('input, button', $('.folha-corpo', f)) || $('.fechar', f)).focus();
+  }
+  function fecharFolha(tela) {
+    const f = $('.folha', tela);
+    if (f.hidden) return;
+    f.hidden = true; $('.folha-corpo', f).replaceChildren();
+    if (opener && document.contains(opener)) opener.focus();
+    opener = null;
+  }
+  [telaHome, telaMapa].forEach(t => {
+    $('.fundo', t).addEventListener('click', () => fecharFolha(t));
+    $('.fechar', t).addEventListener('click', () => fecharFolha(t));
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') [telaHome, telaMapa].forEach(fecharFolha);
+  });
+
+  function ativar(node, fn) {
+    node.addEventListener('click', fn);
+    node.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
+  }
+  function renderProximos() {
+    const prox = [...linhas].sort((a, b) => a.min - b.min).slice(0, 3);
+    $('#lista-proximos').replaceChildren(...prox.map(l => {
+      const li = el('li', { role: 'button', tabindex: '0', 'aria-label': `Linha ${l.num}, ${l.nome}, ${tempo(l.min)}` },
+        el('span', { class: 'linha ' + l.cor, text: l.num }),
+        el('div', { class: 'info' }, el('strong', { text: l.nome }), el('small', { text: 'Direção: ' + l.dir })),
+        el('span', { class: 'tempo', text: tempo(l.min) + ' >' }));
+      ativar(li, () => abrirDetalhe(l));
+      return li;
+    }));
+  }
+  setInterval(() => {
+    linhas.forEach(l => { l.min -= 1; if (l.min < 0) l.min = l.freq; });
+    renderProximos();
+  }, 60000);
+
+  function abrirDetalhe(l) {
+    const corpo = el('div', {},
+      el('div', { class: 'item fixo' },
+        el('span', { class: 'linha ' + l.cor, text: l.num }),
+        el('div', { class: 'info' },
+          el('strong', { text: l.nome }),
+          el('small', { text: `Direção: ${l.dir}. Próximo ônibus: ${tempo(l.min)}` }))),
+      el('p', { class: 'campo', text: 'Itinerário (exemplo)' }),
+      el('ul', { class: 'paradas-lista' }, l.paradas.map(p => el('li', { text: p }))));
+    const btn = el('button', { class: 'botao-primario', type: 'button', text: 'Ver paradas no mapa' });
+    btn.addEventListener('click', () => {
+      fecharFolha(telaHome);
+      mapa.paradas = true; ir('mapa'); atualizarMapa();
+    });
+    corpo.append(btn);
+    abrirFolha(telaHome, 'Linha ' + l.num, corpo);
+  }
+  function abrirLinhas() {
+    const corpo = el('div', {}, [...linhas].sort((a, b) => a.num.localeCompare(b.num)).map(l => {
+      const b = el('button', { class: 'item', type: 'button' },
+        el('span', { class: 'linha ' + l.cor, text: l.num }),
+        el('div', { class: 'info' }, el('strong', { text: l.nome }), el('small', { text: `Direção: ${l.dir}. Próximo: ${tempo(l.min)}` })));
+      b.addEventListener('click', () => abrirDetalhe(l));
+      return b;
+    }));
+    abrirFolha(telaHome, 'Linhas de ônibus', corpo);
+  }
+
+  const busca = $('#busca'), res = $('#resultados');
+  function renderBusca() {
+    const q = busca.value.trim();
+    if (!q) { res.hidden = true; res.replaceChildren(); return; }
+    const ql = q.toLowerCase();
+    const achadas = linhas.filter(l => l.num.includes(ql) || l.nome.toLowerCase().includes(ql));
+    const itens = achadas.map(l => {
+      const b = el('button', { type: 'button', class: 'res' },
+        el('span', { class: 'linha ' + l.cor, text: l.num }), el('span', { text: l.nome }));
+      b.addEventListener('click', () => { busca.value = ''; renderBusca(); abrirDetalhe(l); });
+      return b;
+    });
+    const m = el('button', { type: 'button', class: 'res' },
+      el('span', { class: 'icone mini', text: '📍' }), el('span', { text: `Buscar “${q}” no mapa` }));
+    m.addEventListener('click', () => buscarNoMapa(q));
+    res.replaceChildren(...itens, m); res.hidden = false;
+  }
+  busca.addEventListener('input', renderBusca);
+  busca.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { busca.value = ''; renderBusca(); }
+    if (e.key === 'Enter') {
+      const q = busca.value.trim(); if (!q) return;
+      const exata = linhas.find(l => l.num === q);
+      if (exata) { busca.value = ''; renderBusca(); abrirDetalhe(exata); } else buscarNoMapa(q);
+    }
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('.busca-wrap')) res.hidden = true; });
+
+  on($('#atalho-mapa'), () => { ir('mapa'); $('#mapa-busca').focus(); });
+  on($('#atalho-linhas'), abrirLinhas);
+  on($('#ver-todos'), abrirLinhas);
+  on($('#btn-planejar'), abrirPlanejar);
+  $('#btn-perfil').addEventListener('click', abrirPerfil);
+
+  function abrirPlanejar() {
+    const origem = el('input', { class: 'entrada', id: 'plan-origem', autocomplete: 'off', placeholder: 'Minha localização' });
+    const destino = el('input', { class: 'entrada', id: 'plan-destino', autocomplete: 'off', placeholder: 'Para onde você vai?' });
+    const erro = el('p', { class: 'erro', role: 'alert' });
+    const buscarRota = () => {
+      const d = destino.value.trim();
+      if (!d) { erro.textContent = 'Informe o destino.'; destino.focus(); return; }
+      const p = new URLSearchParams({ api: '1', destination: d, travelmode: 'transit' });
+      if (origem.value.trim()) p.set('origin', origem.value.trim());
+      window.open('https://www.google.com/maps/dir/?' + p, '_blank', 'noopener');
+    };
+    destino.addEventListener('keydown', e => { if (e.key === 'Enter') buscarRota(); });
+    destino.addEventListener('input', () => { erro.textContent = ''; });
+    const btn = el('button', { class: 'botao-primario', type: 'button', text: 'Ver rotas no Google Maps' });
+    btn.addEventListener('click', buscarRota);
+    abrirFolha(telaHome, 'Planeje sua viagem', el('div', {},
+      el('label', { class: 'campo', for: 'plan-origem', text: 'Origem (deixe vazio para usar onde você está)' }), origem,
+      el('label', { class: 'campo', for: 'plan-destino', text: 'Destino' }), destino, erro, btn));
+  }
+
+  function abrirPerfil() {
+    const campo = el('input', { class: 'entrada', id: 'perfil-nome', autocomplete: 'off', value: nome === 'usuário' ? '' : nome, placeholder: 'Seu nome' });
+    const salvar = () => {
+      nome = campo.value.trim() || 'usuário'; store.set('nome', nome);
+      $('#saudacao').textContent = `Olá, ${nome}!`;
+      fecharFolha(telaHome); toast(telaHome, 'Nome atualizado.');
+    };
+    campo.addEventListener('keydown', e => { if (e.key === 'Enter') salvar(); });
+    const btn = el('button', { class: 'botao-primario', type: 'button', text: 'Salvar nome' });
+    btn.addEventListener('click', salvar);
+    const corpo = el('div', {}, el('label', { class: 'campo', for: 'perfil-nome', text: 'Como podemos chamar você?' }), campo, btn);
+    if (favoritos.length) {
+      const lim = el('button', { class: 'botao-sec', type: 'button', text: 'Apagar locais favoritos' });
+      lim.addEventListener('click', () => {
+        if (!confirm('Apagar todos os locais favoritos?')) return;
+        favoritos = []; store.set('favoritos', favoritos); atualizarMapa();
+        fecharFolha(telaHome); toast(telaHome, 'Favoritos apagados.');
+      });
+      corpo.append(lim);
+    }
+    const sair = el('button', { class: 'botao-sec', type: 'button', text: 'Sair da conta' });
+    sair.addEventListener('click', () => { fecharFolha(telaHome); window.dispatchEvent(new CustomEvent('emptybus:logout')); });
+    corpo.append(sair);
+    abrirFolha(telaHome, 'Perfil', corpo);
+  }
+
+  const mapa = { pos: { lat: -7.9406, lng: -34.8731 }, consulta: '', satelite: false, paradas: false };
+  const iframe = $('#google-map'), campoMapa = $('#mapa-busca');
+  const nomeAtual = () => mapa.consulta || 'Minha localização';
+  const ehFavorito = () => favoritos.some(f => f.nome === nomeAtual());
+
+  function urlMapa() {
+    const p = new URLSearchParams({ hl: 'pt-BR', output: 'embed', z: '16', t: mapa.satelite ? 'k' : 'm' });
+    const coord = `${mapa.pos.lat},${mapa.pos.lng}`;
+    if (mapa.paradas) {
+      p.set('q', mapa.consulta ? `ponto de ônibus perto de ${mapa.consulta}` : 'ponto de ônibus');
+      if (!mapa.consulta) p.set('ll', coord);
+    } else if (mapa.consulta) {
+      p.set('q', mapa.consulta);
+    } else {
+      p.set('q', coord); p.set('ll', coord);
+    }
+    return 'https://maps.google.com/maps?' + p;
+  }
+  function atualizarMapa() {
+    const u = urlMapa();
+    if (iframe.getAttribute('src') !== u) iframe.src = u;
+    campoMapa.value = mapa.consulta;
+    $('#btn-paradas').classList.toggle('ativo', mapa.paradas);
+    $('#btn-paradas').setAttribute('aria-pressed', mapa.paradas);
+    $('#btn-camadas').classList.toggle('ativo', mapa.satelite);
+    $('#btn-camadas').setAttribute('aria-pressed', mapa.satelite);
+    $('#btn-favoritos').textContent = (ehFavorito() ? '★' : '☆') + ' favoritos';
+  }
+  function buscarNoMapa(texto) {
+    texto = texto.trim(); if (!texto) return;
+    mapa.consulta = texto; mapa.paradas = false;
+    busca.value = ''; renderBusca();
+    ir('mapa'); atualizarMapa();
+  }
+
+  on($('#mapa-voltar'), () => ir('home'));
+  on($('#mapa-limpar'), () => { mapa.consulta = ''; atualizarMapa(); campoMapa.focus(); });
+  campoMapa.addEventListener('keydown', e => { if (e.key === 'Enter') buscarNoMapa(campoMapa.value); });
+  $('#btn-camadas').addEventListener('click', () => { mapa.satelite = !mapa.satelite; atualizarMapa(); });
+  $('#btn-paradas').addEventListener('click', () => {
+    mapa.paradas = !mapa.paradas; atualizarMapa();
+    toast(telaMapa, mapa.paradas ? 'Mostrando pontos de ônibus próximos.' : 'Paradas ocultas.');
+  });
+  $('#btn-localizar').addEventListener('click', () => {
+    if (!navigator.geolocation) return toast(telaMapa, 'Seu navegador não tem localização.');
+    toast(telaMapa, 'Buscando sua localização…');
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        mapa.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+        mapa.consulta = ''; mapa.paradas = false; atualizarMapa();
+        toast(telaMapa, 'Localização atualizada.');
+      },
+      err => toast(telaMapa, err.code === 1 ? 'Permita o acesso à localização no navegador.' : 'Não foi possível obter a localização.'),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+  $('#btn-favoritos').addEventListener('click', abrirFavoritos);
+
+  function abrirFavoritos() {
+    const corpo = el('div');
+    const desenhar = refocar => {
+      const atual = { nome: nomeAtual(), consulta: mapa.consulta, pos: mapa.pos };
+      const tem = ehFavorito();
+      const btn = el('button', { class: 'botao-primario', type: 'button', text: tem ? `Remover “${atual.nome}”` : `Salvar “${atual.nome}”` });
+      btn.addEventListener('click', () => {
+        favoritos = tem ? favoritos.filter(f => f.nome !== atual.nome) : [...favoritos, atual];
+        store.set('favoritos', favoritos); atualizarMapa(); desenhar(true);
+      });
+      const lista = favoritos.length ? favoritos.map(f => {
+        const ir_ = el('button', { class: 'item', type: 'button' },
+          el('span', { class: 'icone mini', text: '★' }), el('div', { class: 'info' }, el('strong', { text: f.nome })));
+        ir_.addEventListener('click', () => {
+          mapa.pos = f.pos; mapa.consulta = f.consulta; mapa.paradas = false;
+          fecharFolha(telaMapa); atualizarMapa();
+        });
+        const rm = el('button', { class: 'remover', type: 'button', 'aria-label': 'Remover ' + f.nome, text: '✕' });
+        rm.addEventListener('click', () => {
+          favoritos = favoritos.filter(x => x.nome !== f.nome);
+          store.set('favoritos', favoritos); atualizarMapa(); desenhar(false);
+        });
+        return el('div', { class: 'fav' }, ir_, rm);
+      }) : [el('p', { class: 'vazio', text: 'Você ainda não salvou nenhum local.' })];
+      corpo.replaceChildren(btn, ...lista);
+      if (refocar) btn.focus();
+    };
+    desenhar(false);
+    abrirFolha(telaMapa, 'Favoritos', corpo);
+  }
+
+  /* login: personaliza a saudação e volta para a tela inicial */
+  window.addEventListener('emptybus:login', e => {
+    nome = String((e.detail && e.detail.nome) || 'usuário').trim().split(/\s+/)[0] || 'usuário';
+    store.set('nome', nome);
+    $('#saudacao').textContent = `Olá, ${nome}!`;
+    ir('home');
+  });
+
+  $('#saudacao').textContent = `Olá, ${nome}!`;
+  renderProximos();
+  atualizarMapa();
+})();
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  var USERS_KEY = "emptybus-gmap-users";
+  var SESSION_KEY = "emptybus-gmap-session";
+  function loadUsers() { try { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); } catch (e) { return []; } }
+  function saveUsers(l) { try { localStorage.setItem(USERS_KEY, JSON.stringify(l)); } catch (e) {} }
+  function setSession(email) { try { localStorage.setItem(SESSION_KEY, email); } catch (e) {} }
+  function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} }
+  function getSession() { try { return localStorage.getItem(SESSION_KEY); } catch (e) { return null; } }
+
+  function showError(el, msg) { el.textContent = msg; el.classList.add("show"); }
+  function hideError(el) { el.classList.remove("show"); el.textContent = ""; }
+
+  function showCard(which) {
+    $("loginCard").style.display = which === "login" ? "block" : "none";
+    $("cadastroCard").style.display = which === "cadastro" ? "block" : "none";
+    hideError($("loginError"));
+    hideError($("cadastroError"));
+  }
+
+  function showWelcome(email) {
+    var u = loadUsers().filter(function (x) { return x.email === email; })[0];
+    $("authScreen").style.display = "none";
+    $("appScreen").style.display = "block";
+    window.dispatchEvent(new CustomEvent("emptybus:login", { detail: { nome: u ? u.nome : email } }));
+  }
+
+  $("toCadastro").addEventListener("click", function () { showCard("cadastro"); });
+  $("toLogin").addEventListener("click", function () { showCard("login"); });
+
+  function socialLoginPlaceholder(provider) {
+    showError($("loginError"), "Login com " + provider + " ainda não está disponível nesta versão de demonstração.");
+  }
+  $("googleLoginBtn").addEventListener("click", function () { socialLoginPlaceholder("Google"); });
+  $("appleLoginBtn").addEventListener("click", function () { socialLoginPlaceholder("Apple"); });
+
+  $("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var errEl = $("loginError"); hideError(errEl);
+    var email = $("loginEmail").value.trim().toLowerCase();
+    var senha = $("loginSenha").value;
+    if (!email || !senha) { showError(errEl, "Preencha e-mail e senha."); return; }
+    var user = loadUsers().filter(function (u) { return u.email === email; })[0];
+    if (!user || user.senha !== senha) { showError(errEl, "E-mail ou senha incorretos."); return; }
+    setSession(email);
+    showWelcome(email);
+  });
+
+  $("cadastroForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var errEl = $("cadastroError"); hideError(errEl);
+    var nome = $("cadNome").value.trim();
+    var email = $("cadEmail").value.trim().toLowerCase();
+    var senha = $("cadSenha").value;
+    var senha2 = $("cadSenha2").value;
+    var nasc = $("cadNasc").value;
+    if (!nome || !email || !senha || !senha2 || !nasc) { showError(errEl, "Preencha todos os campos."); return; }
+    if (senha !== senha2) { showError(errEl, "As senhas não coincidem."); return; }
+    if (senha.length < 4) { showError(errEl, "A senha deve ter pelo menos 4 caracteres."); return; }
+    var users = loadUsers();
+    if (users.some(function (u) { return u.email === email; })) { showError(errEl, "Já existe uma conta com esse e-mail."); return; }
+    users.push({ nome: nome, email: email, senha: senha, nasc: nasc });
+    saveUsers(users);
+    setSession(email);
+    showWelcome(email);
+  });
+
+  window.addEventListener("emptybus:logout", function () {
+    clearSession();
+    $("loginForm").reset();
+    $("cadastroForm").reset();
+    $("appScreen").style.display = "none";
+    $("authScreen").style.display = "flex";
+    showCard("login");
+  });
+
+  var session = getSession();
+  if (session && loadUsers().some(function (u) { return u.email === session; })) {
+    showWelcome(session);
+  }
+})();
+</script>
+</body>
+</html>
